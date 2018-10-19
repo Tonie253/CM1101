@@ -5,6 +5,12 @@ from player import *
 from items import *
 from gameparser import *
 
+def is_won():
+    global rooms
+    if len(rooms["Reception"]["items"]) == 3:
+        return True
+    else:
+        return False
 
 
 def list_of_items(items):
@@ -24,13 +30,12 @@ def list_of_items(items):
     'money, a student handbook, laptop'
 
     """
-
-    items_return = []
+    total_string = ""
+    for n in range(len(items)):
+        total_string += (items[n]["name"]+", ")
+        
+    return total_string[0:len(total_string)-2]
     
-    for i in items:
-        items_return.append(i["name"])
-
-    return ', '.join(items_return)
 
 
 def print_room_items(room):
@@ -55,11 +60,16 @@ def print_room_items(room):
     Note: <BLANKLINE> here means that doctest should expect a blank line.
 
     """
-
-    if not room["items"]:
-        pass
-    else:
-        print("There is " + list_of_items(room["items"]) + " here.\n")
+    list_of = room["items"]
+    if len(list_of) > 0:
+        print("There is " + list_of_items(list_of) + " here.")
+        print()
+    
+        
+        
+    
+    
+    
 
 
 def print_inventory_items(items):
@@ -73,10 +83,16 @@ def print_inventory_items(items):
 
     """
 
-    if item_list == "":
-        pass
-    else:
-        print("You have " + str(item_list) + ".\n")
+    list_of = items
+    strin = ""
+    if len(list_of) > 0:
+        print("You have " + list_of_items(list_of) + ".")
+        print()
+
+    
+    
+    pass
+
 
 def print_room(room):
     """This function takes a room as an input and nicely displays its name
@@ -131,10 +147,21 @@ def print_room(room):
     # Display room description
     print(room["description"])
     print()
+    if len(room["items"]) > 0:
+        strin_b = "There is "
+        strin_en = " here."
+        for n_items in room["items"]:
+            strin_b += (n_items["name"] + ", ")
 
-    
-    print_room_items(room)
-    
+        strin_b = strin_b[0:len(strin_b)-2] + strin_en
+        print(strin_b)
+        print()
+            
+        
+
+    #
+    # COMPLETE ME!
+    #
 
 def exit_leads_to(exits, direction):
     """This function takes a dictionary of exits and a direction (a particular
@@ -148,7 +175,6 @@ def exit_leads_to(exits, direction):
     >>> exit_leads_to(rooms["Tutor"]["exits"], "west")
     'Reception'
     """
-
     return rooms[exits[direction]]["name"]
 
 
@@ -198,17 +224,19 @@ def print_menu(exits, room_items, inv_items):
     What do you want to do?
 
     """
-     print("You can:")
+    print("You can:")
     # Iterate over available exits
     for direction in exits:
         # Print the exit name and where it leads to
         print_exit(direction, exit_leads_to(exits, direction))
 
-    for i in room_items:
-        print("TAKE " + str(i["id"]).upper() + " to take " + i["name"])
+    for room_i in room_items:
+        print("TAKE " + room_i["id"].upper() +" to take " + room_i["name"] + ".")
 
-    for i in inv_items:
-        print("DROP " + str(i["id"]).upper() + " to drop your " + i["name"])
+    for inv_i  in inv_items:
+        print("DROP " + inv_i["id"].upper() +" to take " + inv_i["name"] + ".")
+        
+
     
     print("What do you want to do?")
 
@@ -238,12 +266,11 @@ def execute_go(direction):
     (and prints the name of the room into which the player is
     moving). Otherwise, it prints "You cannot go there."
     """
-    
     global current_room
-    if (is_valid_exit(current_room["exits"], direction) == True):
-        current_room = move(current_room["exits"],direction)
-    else:
-        print("you cannot go there")
+    if is_valid_exit(current_room["exits"],direction):
+        current_room = rooms[current_room["exits"][direction]]
+        print(current_room["name"])
+    
 
 
 def execute_take(item_id):
@@ -252,28 +279,41 @@ def execute_take(item_id):
     there is no such item in the room, this function prints
     "You cannot take that."
     """
+    global current_room
+    items_available = []
+    item = None
+    for n in current_room["items"]:
+        if item_id == n["id"]:
+            items_available.append(item_id)
+            item = n
+            
+    if item_id in items_available:
+        inventory.append(item)
+        current_room["items"].remove(item)
 
-    global inventory
-    for i in current_room["items"]:
-        if item_id == i["id"]:
-            inventory.append(i)
-            current_room["items"].remove(i)
-            return
-    print("You cannot take that.")
-    
+
+        
+            
 
 def execute_drop(item_id):
     """This function takes an item_id as an argument and moves this item from the
     player's inventory to list of items in the current room. However, if there is
     no such item in the inventory, this function prints "You cannot drop that."
     """
-    global inventory
-    for i in inventory:
-        if item_id == i["id"]:
-            current_room["items"].append(i)
-            inventory.remove(i)
-            return
-    print("You cannot drop that.")
+    global current_room
+    for n in inventory:
+        if item_id == n["id"]:
+            inventory.remove(n)
+            current_room["items"].append(n)
+        
+
+    
+        print("working......")
+        
+
+  
+        
+    
     
 
 def execute_command(command):
@@ -306,7 +346,7 @@ def execute_command(command):
             print("Drop what?")
 
     else:
-        print("This doesn't make sense.")
+        print("This makes no sense.")
 
 
 def menu(exits, room_items, inv_items):
@@ -362,11 +402,14 @@ def main():
         # Execute the player's command
         execute_command(command)
 
-
+        won = is_won()
+        if won:
+            break
 
 # Are we being run as a script? If so, run main().
 # '__main__' is the name of the scope in which top-level code executes.
 # See https://docs.python.org/3.4/library/__main__.html for explanation
 if __name__ == "__main__":
     main()
+    print("Congratulations! You have won!")
 
